@@ -19,6 +19,8 @@ export const meta = {
     "wan2.2-i2v-plus",
     "wanx2.1-i2v-plus",
     "wanx2.1-i2v-turbo",
+    "happyhorse-1.0-i2v",
+    "happyhorse-1.1-i2v",
   ],
   fetchMode: "per_task",
   usageSchema: {
@@ -99,7 +101,11 @@ function convert(ctx) {
   if (model !== upstreamModel) throw new Error("can't change model with metadata");
   const body = { model: model, input: input, parameters: parameters };
 
-  if (String(model).startsWith("wan2.7-i2v")) {
+  const usesMediaInput =
+    String(model).startsWith("wan2.7-i2v") ||
+    String(model).startsWith("happyhorse-1.0-i2v") ||
+    String(model).startsWith("happyhorse-1.1-i2v");
+  if (usesMediaInput) {
     if (!Array.isArray(input.media) || input.media.length === 0) {
       input.media = [];
       const first = trimmed(input.first_frame_url) || trimmed(input.img_url) || firstImage(req);
@@ -108,7 +114,7 @@ function convert(ctx) {
       if (last) input.media.push({ type: "last_frame", url: last });
       if (trimmed(input.audio_url)) input.media.push({ type: "driving_audio", url: input.audio_url });
     }
-    if (input.media.length === 0) throw new Error("wan2.7-i2v requires image, images, input_reference, or input.media");
+    if (input.media.length === 0) throw new Error(model + " requires image, images, input_reference, or input.media");
     delete input.img_url;
     delete input.first_frame_url;
     delete input.last_frame_url;

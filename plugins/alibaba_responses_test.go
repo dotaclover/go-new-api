@@ -27,6 +27,41 @@ func TestAlibabaResponsesProtocol(t *testing.T) {
 		}
 	})
 
+	t.Run("maps HappyHorse image input to media", func(t *testing.T) {
+		for _, model := range []string{"happyhorse-1.0-i2v", "happyhorse-1.1-i2v"} {
+			t.Run(model, func(t *testing.T) {
+				value, callErr := plugin.Engine.Call(t.Context(), "buildSubmitRequest", map[string]any{
+					"model":         model,
+					"upstreamModel": model,
+					"baseUrl":       "https://dashscope.example",
+					"apiKey":        "test-key",
+					"requestBody": map[string]any{
+						"model":    model,
+						"prompt":   "animate the first frame",
+						"image":    "https://cdn.example/first.png",
+						"size":     "720p",
+						"duration": 5,
+					},
+				})
+				require.NoError(t, callErr)
+
+				encoded, marshalErr := common.Marshal(value)
+				require.NoError(t, marshalErr)
+				var request map[string]any
+				require.NoError(t, common.Unmarshal(encoded, &request))
+				body, ok := request["body"].(map[string]any)
+				require.True(t, ok)
+				input, ok := body["input"].(map[string]any)
+				require.True(t, ok)
+				assert.Equal(t, []any{map[string]any{
+					"type": "first_frame",
+					"url":  "https://cdn.example/first.png",
+				}}, input["media"])
+				assert.NotContains(t, input, "img_url")
+			})
+		}
+	})
+
 	t.Run("declares documented usage facts", func(t *testing.T) {
 		require.Len(t, plugin.Meta.UsageSchema, 2)
 		for _, key := range []string{"seconds", "resolution"} {
